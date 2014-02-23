@@ -6,8 +6,9 @@
 # Code references:
 
 SCREEN_SIZE = (460, 460)
-SQUARE_SIZE = (24, 24)
-
 SCREEN_NAME = "SF Project"
+SCREEN_COLOR = 'blue'
 
-FPS = 60
+FPS = 4
+
+SQUARE_SIZE = (24, 24)

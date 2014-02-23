@@ -13,7 +13,7 @@ import numpy as np
 from constants import SCREEN_SIZE, SQUARE_SIZE
 from square import BitSquare
 
-class Board():
+class Board(object):
     """This class contains the methods and definitions for a board, i.e.
     the map where the players will be set in"""
     
@@ -88,6 +88,7 @@ class BitBoard(Board):
                         for j in range(M) ]
     
     def draw_board(self, surface):
+        """ draw the squres from the board"""
         if self.squares is None:
             self.load_board()
         
@@ -95,4 +96,13 @@ class BitBoard(Board):
         for i in range(N):
             for j in range(M):
                 self.squares[i][j].draw(surface)
+                
+    def update_board(self):
+        """ update only needed squares with effects, anim, sprites, etc..."""
+        # highlight squares in diagonal
+        N, M = self.get_matrix_size()
+        for i in range(N):
+            for j in range(M):
+                if i == j:
+                    self.squares[i][j].set_highlight([190, 50, 190, 255, 50])
         
