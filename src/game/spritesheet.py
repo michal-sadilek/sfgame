@@ -9,6 +9,7 @@
  
 import pygame
 from anim import BaseAnimation
+from constants import PERSONA_SIZE
  
 class SpriteSheet(object):
     def __init__(self, filename):
@@ -19,16 +20,22 @@ class SpriteSheet(object):
             raise SystemExit, message
         
     # Load a specific image from a specific rectangle
-    def image_at(self, rectangle, colorkey = None):
+    def image_at(self, rectangle, colorkey = None, resize=True):
         "Loads image from x,y,x+offset,y+offset"
         rect = pygame.Rect(rectangle)
         image = pygame.Surface(rect.size).convert()
+
         image.blit(self.sheet, (0, 0), rect)
         if colorkey is not None:
             if colorkey is -1:
                 colorkey = image.get_at((0,0))
             image.set_colorkey(colorkey, pygame.RLEACCEL)
-        return image
+        # fits sprite to square size    
+        if resize:
+            rect.fit((rect.x, rect.y), PERSONA_SIZE)
+            return pygame.transform.smoothscale(image, PERSONA_SIZE)
+        else:
+            return image
     
     # Load a whole bunch of images and return them as a list
     def images_at(self, rects, colorkey = None):

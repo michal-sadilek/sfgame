@@ -19,32 +19,59 @@ class Board(object):
     
     def __init__(self, file_board=None):
         """ Load board for a given size (in pixels) and a board matrix"""
-        self.size, self.matrix_board = self._load_board_from_file(file_board)
+        pass
         
-    def _load_board_from_file(self, filename):
+    def _load_from_file(self, filename):
         """ Load board info from file and return a matrix of Squares.
         This class should be override by the child board classes.
         This will just create a bit board chess given the self.size"""
         """ Implemented by child class"""
         pass
         
-    def load_board(self):
+    def load(self):
         """ Load squares in board, with all their characteristics
         Implemented by child class"""
         pass
         
-    def get_matrix_size(self):
+    def get_size(self):
         return self.matrix_board.shape
     
-    def get_size(self):
+    def get_pixel_size(self):
         """ Return size of the board in pixels"""
-        return self.size
+        return np.array(self.size) * np.array(self.sqr_size)
     
     def get_square_size(self):
-        sqr_size = np.array(self.size)/np.array(self.matrix_board.shape)
-        return tuple(sqr_size)
+        return self.sqr_size
     
-    def draw_board(self):
+    def get_square_from_position(self, pos, sqr_size=SQUARE_SIZE):
+        # get the board square the persona is in
+        center = np.array(pos)
+        s_size = np.array(sqr_size)
+        try:
+            i, j = tuple((center - s_size/2)/s_size)
+        except IndexError:
+            print "No square at %d, %d." % (i,j)
+            i, j = (0, 0)
+        return self.get_square(i,j)
+    
+    def get_neighbors(self, i, j, dist=1):
+        """ This method returs a 3x3 matrix where the center element
+            is the i,j element. You can easily find the top square
+            by get the neighbor[0][1] for instance."""
+        # treat negative values
+        ibound, jbound = (i - dist, j - dist)
+        if ibound < 0 : ibound = 0
+        if jbound < 0 : jbound = 0
+        return self.squares[ibound:i+2, jbound:j+2]
+    
+    def get_square(self, i, j):
+        """ Return square on matrix(i,j)"""
+        return self.squares[i][j]
+    
+    def update(self):
+        pass
+    
+    def draw(self, surface):
         """Implemented by child class"""
         pass
     
@@ -52,57 +79,63 @@ class Board(object):
 class BitBoard(Board):
     """ 0 and 1 board. To build mazes, for instance"""
     
-    def __init__(self, file_board=None):
-        if file_board is None:
-            self.size = SCREEN_SIZE 
-            self.matrix_board = self._create_chessboard()  
-            print self.matrix_board
-        else:
+    def __init__(self, sqr_size=SQUARE_SIZE, matrix=None, filename=None):
+        self.sqr_size = sqr_size
+        if filename:
             self.size, self.matrix_board = \
-                 self._load_board_from_file(file_board)
+                 self._load_from_file(filename)
+        elif matrix:
+            self.size = matrix.shape
+            self.matrix_board = matrix
+        else: # default
+            self.size = self.set_size(SCREEN_SIZE, sqr_size)
+            self.matrix_board = self._create_chessboard(self.size)  
+            print self.matrix_board, self.matrix_board.shape
             
-    def _create_chessboard(self):
+    def _create_chessboard(self, size):
         """ Chess board calculated by:
         matrix: Xij = | sin [(i+j) * pi/2] |
         """
-        self.matrix_size = tuple(np.array(self.size)/np.array(SQUARE_SIZE))
         def f(i,j):
-            return np.absolute(np.sin((i+j)*np.pi/2).astype(int))
-        
-        return np.fromfunction(f, self.matrix_size, dtype=int)
+            return np.absolute(np.sin((i+j)*np.pi/2).astype(int))       
+        return np.fromfunction(f, size, dtype=int)
     
-    def load_board(self):
+    def load(self):
         """ load BitSquares """
         # TODO: Change matrix to numpy
 
         def set_bitsquare(i, j, sqr_size):
-            new_sqr = BitSquare((i*sqr_size[0], j*sqr_size[1]),
-                                sqr_size, self.matrix_board[i][j])
+            new_sqr = BitSquare((i, j), sqr_size, self.matrix_board[i][j])
             return new_sqr
         
-        N, M = self.get_matrix_size()
+        N, M = self.get_size()
         sqr_size = self.get_square_size()
         
         self.squares = [ [set_bitsquare(i, j, sqr_size) \
-                          for i in range(N) ] \
-                        for j in range(M) ]
+                          for j in range(N) ] \
+                        for i in range(M) ]
     
-    def draw_board(self, surface):
-        """ draw the squres from the board"""
+    def draw(self, surface):
+        """ draw the squares from the board"""
         if self.squares is None:
             self.load_board()
         
-        N, M = self.get_matrix_size()
+        N, M = self.get_size()
         for i in range(N):
             for j in range(M):
                 self.squares[i][j].draw(surface)
                 
-    def update_board(self):
+    def update(self):
         """ update only needed squares with effects, anim, sprites, etc..."""
         # highlight squares in diagonal
-        N, M = self.get_matrix_size()
+        N, M = self.get_size()
         for i in range(N):
             for j in range(M):
                 if i == j:
                     self.squares[i][j].set_highlight([190, 50, 190, 255, 50])
+                    
+    def set_size(self, pixel_size, square_size):
+        # get number of squares per axis
+        n_sqrs = np.array(pixel_size)/np.array(square_size)
+        return tuple(n_sqrs)
         

@@ -10,10 +10,12 @@ import pygame
 from anim import BaseAnimation
 from constants import FPS
 
-class Square():
+class Square(object):
     
-    def __init__(self, pos, size, value):
-        pass
+    def __init__(self, index, size, value):
+        self.index = index
+        self.rect = pygame.Rect((index[0]*size[0], index[1]*size[1]), size)
+        self.value = value
     
     def get_type(self):
         pass
@@ -44,17 +46,12 @@ class Square():
 class BitSquare(Square):
     """ Values can be 1 or 0"""
     
-    def __init__(self, pos, size, value):
-        self.size = size
-        self.value = value
-        self.rect = pygame.Rect(pos, size)
+    def __init__(self, index, size, value):
+        super(BitSquare, self).__init__(index, size, value)
         
     def set_highlight(self, alpha_array):
         self.h_effect = BaseAnimation(alpha_array, True, FPS/2)
         self.h_effect.iter() 
-              
-    def get_color(self):
-        pass 
         
     def draw(self, surface):
         # create a temporary surface before draw in the final one
@@ -76,10 +73,6 @@ class BitSquare(Square):
         sqr_surface.fill(color)
         
         surface.blit(sqr_surface, self.rect)
-            
-    def get_rect(self):
-        """ return Rect """
-        return self.rect
         
     def get_value(self):
         """ Return 0 or 1"""

@@ -20,21 +20,25 @@ pygame.init()
 # Set up the display
 pygame.display.set_caption(K.SCREEN_NAME)
 screen = pygame.display.set_mode(K.SCREEN_SIZE)
+
+# clock setup
 clock = pygame.time.Clock()
+elapsed = 0
 
 # Create and load board (squares)
-chessboard = BitBoard(None)
-chessboard.load_board()
-chessboard.update_board()
+chessboard = BitBoard()
+chessboard.load()
+chessboard.update()
 
 # Create player and add it to the board
-player = Persona((0,0), (24,24))
+player = Persona(chessboard,(0,0), K.PERSONA_SIZE)
 player.sprite_anim()
 
 running = True
 while running:
     
-    clock.tick(K.FPS)
+    elapsed = clock.tick(K.FPS)
+    seconds = elapsed/1000.0
 
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
@@ -42,15 +46,18 @@ while running:
             pygame.quit()
         if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
             running = False
+        # treat players, npc, and others.        
+        player.event(e, seconds)
     
-    # treat players, npc, and others.        
-    player.event() 
+    # move player
+    key = pygame.key.get_pressed()
+    player.keypressed(key, seconds)
            
     # Start screen
     screen.fill(pygame.Color(K.SCREEN_COLOR))
     
     # draw methods
-    chessboard.draw_board(screen)
+    chessboard.draw(screen)
     player.draw(screen)
     
     pygame.display.flip()
