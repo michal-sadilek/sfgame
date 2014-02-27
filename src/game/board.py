@@ -10,6 +10,9 @@
 
 import numpy as np
 
+import pygame
+from pygame import sprite
+
 from constants import SCREEN_SIZE, SQUARE_SIZE
 from square import BitSquare
 
@@ -17,15 +20,8 @@ class Board(object):
     """This class contains the methods and definitions for a board, i.e.
     the map where the players will be set in"""
     
-    def __init__(self, file_board=None):
+    def __init__(self):
         """ Load board for a given size (in pixels) and a board matrix"""
-        pass
-        
-    def _load_from_file(self, filename):
-        """ Load board info from file and return a matrix of Squares.
-        This class should be override by the child board classes.
-        This will just create a bit board chess given the self.size"""
-        """ Implemented by child class"""
         pass
         
     def load(self):
@@ -43,15 +39,21 @@ class Board(object):
     def get_square_size(self):
         return self.sqr_size
     
-    def get_square_from_position(self, pos, sqr_size=SQUARE_SIZE):
+    def get_index_from_position(self, pos, sqr_size):
         # get the board square the persona is in
         center = np.array(pos)
         s_size = np.array(sqr_size)
         try:
-            i, j = tuple((center - s_size/2)/s_size)
+            i, j = tuple((center - s_size/ 2)/ s_size)
         except IndexError:
             print "No square at %d, %d." % (i,j)
+            # TODO: how to treat this exception?
             i, j = (0, 0)
+        return (i, j)
+    
+    def get_square_from_position(self, pos, sqr_size=SQUARE_SIZE):
+        # get the board square the persona is in
+        i, j = self.get_index_from_position(pos, sqr_size)
         return self.get_square(i,j)
     
     def get_neighbors(self, i, j, dist=1):
@@ -62,8 +64,8 @@ class Board(object):
         ibound, jbound = (i - dist, j - dist)
         if ibound < 0 : ibound = 0
         if jbound < 0 : jbound = 0
-        return self.squares[ibound:i+2, jbound:j+2]
-    
+        return np.array(self.squares)[ibound:i+2,jbound:j+2]
+
     def get_square(self, i, j):
         """ Return square on matrix(i,j)"""
         return self.squares[i][j]
@@ -80,6 +82,7 @@ class BitBoard(Board):
     """ 0 and 1 board. To build mazes, for instance"""
     
     def __init__(self, sqr_size=SQUARE_SIZE, matrix=None, filename=None):
+        super(BitBoard, self).__init__()
         self.sqr_size = sqr_size
         if filename:
             self.size, self.matrix_board = \
@@ -127,15 +130,60 @@ class BitBoard(Board):
                 
     def update(self):
         """ update only needed squares with effects, anim, sprites, etc..."""
+        pass
         # highlight squares in diagonal
         N, M = self.get_size()
         for i in range(N):
             for j in range(M):
                 if i == j:
-                    self.squares[i][j].set_highlight([190, 50, 190, 255, 50])
+                    self.squares[i][j].highlight([190, 50, 190, 255, 50],
+                                                  on=False)
                     
     def set_size(self, pixel_size, square_size):
         # get number of squares per axis
         n_sqrs = np.array(pixel_size)/np.array(square_size)
         return tuple(n_sqrs)
+    
+
+class BoardEngine(object):
+    def __init__(self, board):
+        self.board = board
+        self.players = sprite.Group([])
+        self.enemies = sprite.Group([])
+        self.objects = sprite.Group([])
+        
+    def set_move_area(self, player):
+        i, j = self.board.get_index_from_position(player.rect.center,
+                                                   self.board.sqr_size)
+        move_area = self.board.get_neighbors(i, j)
+        
+        # convert area to array to use use .flatten method to get a list 
+        # from it
+        group = sprite.Group(list(move_area.flatten()))
+        print group
+        if sprite.spritecollideany(player, group) is None:
+            player.speed = (0,0)
+            
+        return group
+            
+    def event(self, event, seconds):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a:
+                move_area = self.set_move_area(self.current)
+                self.highlight_squares(move_area.sprites())
+                
+    def highlight_squares(self, squares):
+        for square in squares:
+            square.highlight([190, 50, 190, 255, 50])
+        
+    def set_current_player(self, player):
+        self.current = player
+        
+    def add_player(self, *players):
+        """Add player(s) to sprite Group players"""
+        self.players.add(*players)
+    
+    def add_objects(self, group):
+        pass
+    
         

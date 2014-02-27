@@ -6,17 +6,19 @@
 # Code references:
 
 import pygame
+from pygame import sprite
 import numpy
 
 from spritesheet import SpriteStripAnim
 from constants import FPS, PERSONA_SIZE
 
 SIZE = PERSONA_SIZE[0]   # size of the square side
-MOVE_DELAY = 4          # time to move from one square to another
+MOVE_DELAY = 1         # time to move from one square to another
 MOVE_SPEED = SIZE / MOVE_DELAY      # speed to move a square
 
-class Persona(object):  
+class Persona(sprite.Sprite):  
     def __init__(self, board, pos, size, **kwargs):
+        super(Persona, self).__init__()
         self.rect = pygame.Rect(pos,size)
         self.x = pos[0]
         self.y = pos[1]
@@ -24,23 +26,32 @@ class Persona(object):
         self.strip_index = 0
         self.speed = (0,0)
         self.board = board
+        self.square_walk = numpy.zeros(2, dtype=int)
         
     def stop(self):
         self.speed = (0,0)
                 
     def move(self, speed, seconds=1):       
-        # Move each axis separately. Note that this checks for collisions both times.
+        # Move each axis separately. 
+        #Note that this checks for collisions both times.
         dx, dy = speed
         if dx != 0:
             self.move_single_axis(dx, 0, seconds)
         if dy != 0:
             self.move_single_axis(0, dy, seconds)
     
-    def move_single_axis(self, dx, dy, seconds=1):    
-        # Move the rect
-        # return lock
-        self.x += dx * seconds
-        self.y += dy * seconds
+    def walk_iter(self, delta): 
+        # generator to move one square at a time
+        # square_walk and delta are numpy arrays  
+        sqr_size = numpy.array(self.board.get_square_size())
+        while numpy.all(numpy.absolute(self.square_walk) < sqr_size):
+            self.square_walk = self.square_walk + delta
+            yield 
+    
+    def move_single_axis(self, dx, dy, seconds=1):
+        delta = numpy.array([dx * seconds, dy * seconds])
+        self.x += delta[0]
+        self.y += delta[1]
         
         board_size = self.board.get_pixel_size()
         
@@ -52,19 +63,17 @@ class Persona(object):
         if self.y + self.rect.h > board_size[1] or self.y < 0:
             self.y -= dy * seconds
             self.stop()
-            
-        # Check if movement may stop and center it to square
-        # TODO: buggy code
-        #import pdb
-        #pdb.set_trace()
-        sqr = self.board.get_square_from_position(self.rect.center)
-        print sqr.rect, self.current_sqr.rect
-        if sqr.rect.center != self.current_sqr.rect.center:        
-            print "Move to center", self.rect.center
+        
+        try:
+            self.walk_iter(delta).next()
+        except StopIteration:
+            # TODO: bug to get the right sqr when speed is negative
+            sqr = self.board.get_square_from_position(self.rect.center)
             self.x = sqr.rect.x
-            self.y = sqr.rect.y
-            self.current_sqr = sqr
+            self.y = sqr.rect.y 
+            self.square_walk = numpy.zeros(2)
             self.stop()
+            
                    
     def draw(self, surface):
         if self.strips is None:
@@ -95,7 +104,7 @@ class Persona(object):
     def event(self, event, seconds):
         # fix center from last move
         if event.type == pygame.KEYUP:
-            pass
+            return
           
     def keypressed(self, keys, seconds):
         # Move the player if an arrow key is pressed

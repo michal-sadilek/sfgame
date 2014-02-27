@@ -9,7 +9,7 @@ SCREEN_SIZE = (460, 460)
 SCREEN_NAME = "SF Project"
 SCREEN_COLOR = 'blue'
 
-FPS = 10
+FPS = 60
 MOVE_SPEED = 4
 
 SQUARE_SIZE = (40, 40)

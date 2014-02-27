@@ -9,7 +9,7 @@ import os
 import pygame
 
 import constants as K
-from game.board import BitBoard
+from game.board import BitBoard, BoardEngine
 from game.persona import Persona
 
 # Initialize pygame
@@ -34,6 +34,10 @@ chessboard.update()
 player = Persona(chessboard,(0,0), K.PERSONA_SIZE)
 player.sprite_anim()
 
+board_engine = BoardEngine(chessboard)
+board_engine.add_player(player)
+board_engine.set_current_player(player)
+
 running = True
 while running:
     
@@ -46,7 +50,8 @@ while running:
             pygame.quit()
         if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
             running = False
-        # treat players, npc, and others.        
+        # treat players, npc, and others. 
+        board_engine.event(e, seconds)       
         player.event(e, seconds)
     
     # move player

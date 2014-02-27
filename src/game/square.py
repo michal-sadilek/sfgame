@@ -6,13 +6,15 @@
 # Code references:
 
 import pygame
+from pygame import sprite
 
 from anim import BaseAnimation
 from constants import FPS
 
-class Square(object):
+class Square(sprite.Sprite):
     
     def __init__(self, index, size, value):
+        super(Square, self).__init__()
         self.index = index
         self.rect = pygame.Rect((index[0]*size[0], index[1]*size[1]), size)
         self.value = value
@@ -49,7 +51,10 @@ class BitSquare(Square):
     def __init__(self, index, size, value):
         super(BitSquare, self).__init__(index, size, value)
         
-    def set_highlight(self, alpha_array):
+    def highlight(self, alpha_array, on=True):
+        if not on:
+            self.h_effect = None
+            return
         self.h_effect = BaseAnimation(alpha_array, True, FPS/2)
         self.h_effect.iter() 
         
