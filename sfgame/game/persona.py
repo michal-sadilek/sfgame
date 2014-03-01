@@ -5,75 +5,91 @@
 # Author: Adalberto Medeiros (adalbas@gmail.com)
 # Code references:
 
+import logging
 import pygame
 from pygame import sprite
-import numpy
+import numpy as n
 
 from spritesheet import SpriteStripAnim
 from constants import FPS, PERSONA_SIZE
 
+LOG = logging.getLogger(__name__)
+
+# TODO: move this to functions or constants module
 SIZE = PERSONA_SIZE[0]   # size of the square side
-MOVE_DELAY = 1         # time to move from one square to another
+MOVE_DELAY = 0.5         # time to move from one square to another
 MOVE_SPEED = SIZE / MOVE_DELAY      # speed to move a square
 
-class Persona(sprite.Sprite):  
+class Persona(sprite.Sprite):
     def __init__(self, board, pos, size, **kwargs):
         super(Persona, self).__init__()
         self.rect = pygame.Rect(pos,size)
         self.x = pos[0]
         self.y = pos[1]
-        self.current_sqr = board.get_square_from_position(self.rect.center)
         self.strip_index = 0
         self.speed = (0,0)
         self.board = board
-        self.square_walk = numpy.zeros(2, dtype=int)
+        self.move_area = sprite.Group(board.squares)  # player can initially move anywehere
+        self.square_walk = n.zeros(2, dtype=int)     
+     
+    def current_sqr(self):
+        sqr = self.board.get_square_from_position(self.rect.center)
+        return sqr   
         
     def stop(self):
         self.speed = (0,0)
+        
+    def get_direction(self, speed):
+        return (n.array(self.speed) / n.linalg.norm(n.array(self.speed))).astype(int)
                 
     def move(self, speed, seconds=1):       
-        # Move each axis separately. 
-        #Note that this checks for collisions both times.
-        dx, dy = speed
-        if dx != 0:
-            self.move_single_axis(dx, 0, seconds)
-        if dy != 0:
-            self.move_single_axis(0, dy, seconds)
-    
-    def walk_iter(self, delta): 
-        # generator to move one square at a time
-        # square_walk and delta are numpy arrays  
-        sqr_size = numpy.array(self.board.get_square_size())
-        while numpy.all(numpy.absolute(self.square_walk) < sqr_size):
-            self.square_walk = self.square_walk + delta
-            yield 
-    
-    def move_single_axis(self, dx, dy, seconds=1):
-        delta = numpy.array([dx * seconds, dy * seconds])
+        # start square movement
+        if n.all(self.square_walk == n.array([0,0])):
+            try:
+                index = self.current_sqr().index
+            except IndexError:
+                LOG.warning('Could not retrieve current position for rect %s' % self.rect)
+                self.stop()
+                return
+            
+            # Check for collisions (next square exists)
+            direction = self.get_direction(speed)
+            n_i, n_j = n.array(index) + direction
+            try:
+                # try block to get uninvalid indexes (outside board)
+                n_square = self.board.get_square(n_i, n_j)
+                LOG.debug('Move to next square. Current: %s Next:%s' %
+                          (self.rect, n_square.rect))
+                
+                if n_square not in self.move_area:
+                    LOG.debug("Try to move outside move area: %s" % n_square.rect)
+                    self.stop() 
+                    return
+            except IndexError:
+                self.stop()
+                return  
+        
+        # If all collision check passed, then move
+        delta = n.array([speed[0] * seconds, speed[1] * seconds])
         self.x += delta[0]
-        self.y += delta[1]
-        
-        board_size = self.board.get_pixel_size()
-        
-        # collision with board boundaries
-        # TODO: change to persona size
-        if self.x + self.rect.w > board_size[0] or self.x < 0:
-            self.x -= dx * seconds
-            self.stop()
-        if self.y + self.rect.h > board_size[1] or self.y < 0:
-            self.y -= dy * seconds
-            self.stop()
-        
+        self.y += delta[1]        
         try:
             self.walk_iter(delta).next()
         except StopIteration:
-            # TODO: bug to get the right sqr when speed is negative
+            # Fix square position
             sqr = self.board.get_square_from_position(self.rect.center)
             self.x = sqr.rect.x
             self.y = sqr.rect.y 
-            self.square_walk = numpy.zeros(2)
+            self.square_walk = n.zeros(2)
             self.stop()
-            
+            return
+    
+    def walk_iter(self, delta): 
+        # generator to move one square at a time
+        sqr_size = n.array(self.board.get_square_size())
+        while n.all(n.absolute(self.square_walk) < sqr_size):
+            self.square_walk = self.square_walk + delta
+            yield 
                    
     def draw(self, surface):
         if self.strips is None:
@@ -88,7 +104,7 @@ class Persona(sprite.Sprite):
     
     def sprite_anim(self):
         
-        # TODO(adalbas): change values below to the appropriate place (BD, file...)
+        # TODO: change values below to the appropriate place (BD, file...)
         frames = FPS / 4
         filename = '/home/acfleury/user/sf/sfgame/data/images/ShiningForce2_Bowie.png'
         # position to each stripanim (2 stripes each)
@@ -126,16 +142,14 @@ class Persona(sprite.Sprite):
                 self.strip_index = 0
                 self.speed = (0, MOVE_SPEED)
         self.move(self.speed, seconds)       
-        # lock movement for MOVE_DELAY time
-        #self.cooldown -= seconds
-                 
+        
     def set_effect(self):
         pass
     
 # not currently used   
 class Move(object):        
     def __init__(self, persona, speed):
-        translation = numpy.identity(3, dtype=numpy.int)
+        translation = n.identity(3, dtype=n.int)
         translation[0][2] = speed[0]
         translation[1][2] = speed[1]
         self.translation = translation
@@ -144,24 +158,11 @@ class Move(object):
         
     def get_current(self):
         cur_t = self.persona.rect.center
-        return numpy.array([cur_t[0],cur_t[1],1]).T
+        return n.array([cur_t[0],cur_t[1],1]).T
 
     def move(self):
         # Find values for dx and dy to move
         current = self.get_current()
-        m_vector = numpy.dot(self.translation, current).T
+        m_vector = n.dot(self.translation, current).T
         self.persona.rect.centerx = m_vector[0]
-        self.persona.rect.centery = m_vector[1]
-        
-    def square_move(self):
-        pass
-        #dist_to_center = numpy.array(sqr.rect.center) - numpy.array(self.rect.center)
-        #move_array = numpy.array([dx * seconds, dy * seconds])
-        #next_sqr_center = numpy.array(self.rect.center) + numpy.round(move_array)
-        #print sqr.rect.center, "-", self.rect.center, move_array, dist_to_center
-        #if numpy.any(numpy.array(sqr.rect.center) == next_sqr_center):
-            
-        #if numpy.any(move_array * dist_to_center > 0):      
-            # this will check both the distance and the move
-            # are on the same direction 
-        #if numpy.any(numpy.absolute(dist_to_center) == 39): # < numpy.absolute(move_array)
+        self.persona.rect.centery = m_vector[1]     

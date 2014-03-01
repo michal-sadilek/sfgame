@@ -9,7 +9,6 @@ import pygame
 from pygame import sprite
 
 from anim import BaseAnimation
-from constants import FPS
 
 class Square(sprite.Sprite):
     
@@ -18,45 +17,33 @@ class Square(sprite.Sprite):
         self.index = index
         self.rect = pygame.Rect((index[0]*size[0], index[1]*size[1]), size)
         self.value = value
-    
-    def get_type(self):
-        pass
+          
+    def get_value(self):
+        """ Return the string/number value of the square"""
+        return self.value
     
     def get_size(self):
-        pass
-    
-    def get_value_criterias(self):
-        """The map value should be associated to a 
-        certain type of criterias, as stripesheet filename,
-        colorkey, and other useful information for the 
-        square"""
+        """ Return square size"""
+        return self.size
     
     def draw(self, surface):
+        """ Implemented by child"""
         pass
     
-    def get_tile(self):
-        pass
-    
-    def set_tile(self):
-        pass
-    
-    def hihglight(self):
-        """ Highlight square and makes it blink.
-        Frequency is added as input"""
-    
+    def highlight(self, alpha_array, duration, on=True):
+        """The alpha array to make it blink, the duration for each blink,
+        in frames per second and if it should be on or off"""
+        if not on:
+            self.h_effect = None
+            return
+        self.h_effect = BaseAnimation(alpha_array, True, duration)
+        self.h_effect.iter() 
 
 class BitSquare(Square):
     """ Values can be 1 or 0"""
     
     def __init__(self, index, size, value):
         super(BitSquare, self).__init__(index, size, value)
-        
-    def highlight(self, alpha_array, on=True):
-        if not on:
-            self.h_effect = None
-            return
-        self.h_effect = BaseAnimation(alpha_array, True, FPS/2)
-        self.h_effect.iter() 
         
     def draw(self, surface):
         # create a temporary surface before draw in the final one
@@ -78,14 +65,7 @@ class BitSquare(Square):
         sqr_surface.fill(color)
         
         surface.blit(sqr_surface, self.rect)
-        
-    def get_value(self):
-        """ Return 0 or 1"""
-        return self.value
-    
-    def get_size(self):
-        """ Return square size"""
-        return self.size
+
     
     
 
