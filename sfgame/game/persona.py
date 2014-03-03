@@ -6,6 +6,7 @@
 # Code references:
 
 import logging
+import itertools
 import pygame
 from pygame import sprite
 import numpy as n
@@ -23,9 +24,14 @@ MOVE_SPEED = SIZE / MOVE_DELAY      # speed to move a square
 class Persona(sprite.Sprite):
     def __init__(self, board, pos, size, **kwargs):
         super(Persona, self).__init__()
-        self.rect = pygame.Rect(pos,size)
+        #self.image = pygame.Surface(size)
+        #self.image.fill(pygame.Color('white'))
+        #self.rect = self.image.get_rect()
+        #self.rect.x = pos[0]
+        #self.rect.y = pos[1]
+        self.rect = pygame.Rect(pos, size)
         self.x = pos[0]
-        self.y = pos[1]
+        self.y = pos[0]
         self.strip_index = 0
         self.speed = (0,0)
         self.board = board
@@ -141,10 +147,27 @@ class Persona(sprite.Sprite):
             if keys[pygame.K_DOWN]:
                 self.strip_index = 0
                 self.speed = (0, MOVE_SPEED)
-        self.move(self.speed, seconds)       
+        self.move(self.speed, seconds)
+        #self.draw(self.image) 
         
     def set_effect(self):
         pass
+    
+class Team(sprite.Group):
+    def __init__(self, name):
+        super(Team, self).__init__()
+        self.name = name
+        self.team_iter = itertools.cycle(self.sprites())
+        
+    def add_player(self, *players):
+        """Add player(s) to sprite Group players"""
+        self.add(*players)
+        self.team_iter = itertools.cycle(self.sprites())
+        
+    def next_player(self, *kwargs):
+        LOG.debug("Team %s sprites: %s" % (self.name, self.sprites()))
+        return self.team_iter.next()
+            
     
 # not currently used   
 class Move(object):        

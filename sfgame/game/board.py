@@ -17,6 +17,7 @@ from pygame import sprite
 
 from constants import SCREEN_SIZE, SQUARE_SIZE, FPS
 from square import BitSquare
+from persona import Team
 
 LOG = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class Board(object):
     def get_square_from_position(self, pos, sqr_size=SQUARE_SIZE):
         # get the board square the persona is in
         i, j = self.get_index_from_position(pos, sqr_size)
-        LOG.debug('Return square for index %d, %d' % (i,j))
+        #LOG.debug('Return square for index %d, %d' % (i,j))
         try:
             return self.get_square(i,j)
         except IndexError:
@@ -147,9 +148,13 @@ class BoardEngine(object):
         self.board = board
         board.set_board_engine(self)
         self.current_player = current
-        self.players = sprite.Group([])
-        self.enemies = sprite.Group([])
-        self.objects = sprite.Group([])
+        self.teams = []
+        
+    def load(self):
+        """ Initialize board effects"""
+        move_area = self.update_move_area(self.current_player)
+        self.current_player.move_area = move_area
+        self.highlight_squares(self.current_player.move_area.sprites())
         
     def event(self, event, seconds):
         # TODO: Each child (different types of board engine)
@@ -161,6 +166,9 @@ class BoardEngine(object):
                 if move_area is not None:
                     self.highlight_squares(move_area.sprites(),
                                            on=False)
+                turn_criteria = {'team_alternate' : 'true'}
+                # Change current player
+                self.current_player = self.next_player(self.teams)
                 # Set new move area
                 move_area = self.update_move_area(self.current_player)
                 self.current_player.move_area = move_area
@@ -178,18 +186,38 @@ class BoardEngine(object):
         for square in squares:
             square.highlight([190, 50, 190, 255, 50], FPS/4, on)
         
+    def get_current_player(self):
+        return self.current_player
+    
+    def get_team(self, player):
+        for team in self.teams:
+            if team.has(player):
+                return team
+        LOG.warning('No team defined for player %s' % player)
+        return None
+    
+    def next_player(self, teams, **kwargs):
+        # get team current player
+        current_team = self.get_team(self.current_player)
+        for team in teams:
+            if current_team != team:
+                return team.next_player()
+        return self.current_player
+        
     def set_current_player(self, player):
         """ To set it current, a player should have been added to the 
         board engine"""
-        if player in self.players:
-            self.current_player = player
-        else:
-            LOG.warning('Player %s not on board engine' % player.rect)
-            self.current_player = None
+        for team in self.teams:
+            if player in team:
+                self.current_player = player
+                return
+        LOG.warning('Player %s not on board engine' % player.rect)
+        self.current_player = None
         
-    def add_player(self, *players):
-        """Add player(s) to sprite Group players"""
-        self.players.add(*players)
+    def create_team(self, name):
+        team = Team(name)
+        self.teams.append(team)
+        return team
 
 
 # not in use yet

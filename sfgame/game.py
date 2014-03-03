@@ -19,7 +19,6 @@ def config():
 def game():
     # Initialize pygame
     os.environ["SDL_VIDEO_CENTERED"] = "1"
-    #os.environ["SDL_SRCALPHA"] = "1"
     pygame.init()
     
     # Set up the display
@@ -33,15 +32,23 @@ def game():
     # Create and load board (squares)
     chessboard = BitBoard()
     chessboard.load()
-    chessboard.update()
     
-    # Create player and add it to the board
-    player = Persona(chessboard,(0,0), K.PERSONA_SIZE)
-    player.sprite_anim()
+    # Create players and add them to the board
+    player1 = Persona(chessboard,(0,0), K.PERSONA_SIZE)
+    player1.sprite_anim()
+    player2 = Persona(chessboard,(320,320), K.PERSONA_SIZE)
+    player2.sprite_anim()
+    player3 = Persona(chessboard, (120, 120), K.PERSONA_SIZE)
+    player3.sprite_anim()
     
+    # Create board engine and associate players
     board_engine = BoardEngine(chessboard)
-    board_engine.add_player(player)
-    board_engine.set_current_player(player)
+    teamA = board_engine.create_team("Team A")
+    teamB = board_engine.create_team("Team B")
+    teamA.add_player(player1)
+    teamB.add_player([player2, player3])
+    board_engine.set_current_player(player1)
+    board_engine.load()
     
     running = True
     while running:
@@ -57,18 +64,22 @@ def game():
                 running = False
             # treat players, npc, and others. 
             board_engine.event(e, seconds)       
-            player.event(e, seconds)
+            cur_player = board_engine.get_current_player()
+            cur_player.event(e, seconds)
         
         # move player
         key = pygame.key.get_pressed()
-        player.keypressed(key, seconds)
+        cur_player.keypressed(key, seconds)
                
         # Start screen
         screen.fill(pygame.Color(K.SCREEN_COLOR))
         
         # draw methods
         chessboard.draw(screen)
-        player.draw(screen)
+        for player in teamA:
+            player.draw(screen)
+        for player in teamB:
+            player.draw(screen)
         
         pygame.display.flip()
     
