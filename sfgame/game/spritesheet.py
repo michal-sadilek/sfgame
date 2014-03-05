@@ -8,7 +8,7 @@
 # Source: http://www.pygame.org/wiki/Spritesheet?parent=CookBook
  
 import pygame
-from anim import BaseAnimation
+from game.anim import BaseAnimation
 from constants import PERSONA_SIZE
  
 class SpriteSheet(object):

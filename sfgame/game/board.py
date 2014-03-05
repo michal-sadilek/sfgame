@@ -9,15 +9,16 @@
 # for a board
 
 import logging
-import numpy as np
+import numpy as n
 from numpy import ma
+from scipy import ndimage
 
 import pygame
 from pygame import sprite
 
 from constants import SCREEN_SIZE, SQUARE_SIZE, FPS
-from square import BitSquare
-from persona import Team
+from game.square import BitSquare
+from game.persona import Team
 
 LOG = logging.getLogger(__name__)
 
@@ -52,16 +53,16 @@ class Board(object):
     
     def get_pixel_size(self):
         """ Return size of the board in pixels"""
-        return np.array(self.size) * np.array(self.sqr_size)
+        return n.array(self.size) * n.array(self.sqr_size)
     
     def get_square_size(self):
         return self.sqr_size
     
-    def get_index_from_position(self, pos, sqr_size):
+    def get_index_from_position(self, pos, sqr_size=SQUARE_SIZE):
         # get the board square the persona is in
-        center = np.array(pos)
-        s_size = np.array(sqr_size)
-        i, j = np.around(np.array(center - s_size/ 2, dtype=float)/ s_size).astype(int)
+        center = n.array(pos)
+        s_size = n.array(sqr_size)
+        i, j = n.around(n.array(center - s_size/ 2, dtype=float)/ s_size).astype(int)
         return (i, j)
     
     def get_square_from_position(self, pos, sqr_size=SQUARE_SIZE):
@@ -73,15 +74,20 @@ class Board(object):
         except IndexError:
             raise
     
-    def get_neighbors(self, i, j, dist=1):
-        """ This method returs a 3x3 matrix where the center element
-            is the i,j element. You can easily find the top square
-            by get the neighbor[0][1] for instance."""
-        # treat negative values
-        ibound, jbound = (i - dist, j - dist)
-        if ibound < 0 : ibound = 0
-        if jbound < 0 : jbound = 0
-        return np.array(self.squares)[ibound:i+2,jbound:j+2]
+    def get_neighbors(self, i, j, dist=1, mask=n.ones((3,3))):
+        """ Use scipy binary dilation to get appropriate methods."""
+        # Convert mask to full board size, based on defined
+        # i, j position
+        full_mask = n.zeros_like(self.matrix_board)
+        full_mask[i, j] = 1
+        
+        # apply mask using distance as iterations
+        n_mask = ndimage.binary_dilation(full_mask,
+                                         structure=mask, iterations=dist)
+        # get masked array and compress it to 1d array
+        neighbors = ma.array(self.squares, mask=~n_mask).compressed()
+        LOG.debug("Neighbors found for mask %s: %s" % (mask, neighbors))
+        return neighbors.tolist()
 
     def get_square(self, i, j):
         """ Return square on matrix(i,j)"""
@@ -95,11 +101,14 @@ class Board(object):
     def set_size(self, pixel_size, square_size):
         """Set number of squares per axis """
         # TODO: is this really needed?
-        n_sqrs = np.array(pixel_size)/np.array(square_size)
+        n_sqrs = n.array(pixel_size)/n.array(square_size)
         return tuple(n_sqrs)
     
     def set_board_engine(self, board_engine):
         self.board_engine = board_engine
+        
+    def get_board_engine(self):
+        return self.board_engine
     
     
 class BitBoard(Board):
@@ -124,8 +133,8 @@ class BitBoard(Board):
         matrix: Xij = | sin [(i+j) * pi/2] |
         """
         def f(i,j):
-            return np.absolute(np.sin((i+j)*np.pi/2).astype(int))       
-        return np.fromfunction(f, size, dtype=int)
+            return n.absolute(n.sin((i+j)*n.pi/2).astype(int))       
+        return n.fromfunction(f, size, dtype=int)
     
     def load(self):
         """ load BitSquares """
@@ -149,38 +158,26 @@ class BoardEngine(object):
         board.set_board_engine(self)
         self.current_player = current
         self.teams = []
+        self.move_area = MoveArea(self.board)
         
     def load(self):
         """ Initialize board effects"""
-        move_area = self.update_move_area(self.current_player)
-        self.current_player.move_area = move_area
-        self.highlight_squares(self.current_player.move_area.sprites())
+        if self.current_player is None:
+            LOG.warning("No current player set for board %s" % self.board)
+        else:
+            self.move_area.update_area(self.current_player)
+            self.highlight_squares(self.move_area.sprites())          
         
     def event(self, event, seconds):
-        # TODO: Each child (different types of board engine)
-        # should implement the board events.
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                # Turn off previous highlight
-                move_area = self.current_player.move_area
-                if move_area is not None:
-                    self.highlight_squares(move_area.sprites(),
-                                           on=False)
-                turn_criteria = {'team_alternate' : 'true'}
+            if event.key == pygame.K_s:
+                # turn off previous move_area
+                self.highlight_squares(self.move_area.sprites(), on=False)
                 # Change current player
                 self.current_player = self.next_player(self.teams)
                 # Set new move area
-                move_area = self.update_move_area(self.current_player)
-                self.current_player.move_area = move_area
-                self.highlight_squares(self.current_player.move_area.sprites())
-                
-    def update_move_area(self, player):
-        i, j = self.board.get_index_from_position(player.rect.center,
-                                                   self.board.sqr_size)
-        move_area = self.board.get_neighbors(i, j)
-        # convert area to array to use use .flatten method to get a list 
-        group = sprite.Group(list(move_area.flatten()))
-        return group
+                self.move_area.update_area(self.current_player)
+                self.highlight_squares(self.move_area.sprites(), on=True)
                 
     def highlight_squares(self, squares, on=True):
         for square in squares:
@@ -218,40 +215,22 @@ class BoardEngine(object):
         team = Team(name)
         self.teams.append(team)
         return team
+    
 
-
-# not in use yet
 class MoveArea(sprite.Group):
-    def __init__(self, player, board, move_mask):
-        self.player = player
+    def __init__(self, board):
+        super(MoveArea, self).__init__([])
         self.board = board
-        self.move_mask = move_mask
-        
-    def get(self, distance=1):
+    
+    def update_area(self, player):
         # get move area from mask (list of squares)
-        i, j = self.move_mask.p_pos
-        squares = self.board.get_neighbors(i, j, distance)
-        move_area = ma.array(squares, self.move_mask)
-        return move_area.compressed()
-        
-    def update(self, move_mask):
-        self.move_mask = move_mask
-        
-# not in use yet
-class MoveAreaMask(object):
-    def __init__(self, matrix=None, distance=1):
-        """ Define the mask that will be used to get the right squares for 
-            a player's move area. This mask has a distance to the player
-            (which will used in the get neighbors method.
-            The mask is a set of 1 and 0, and a P value to sign up where
-            the player is (mostly common in the middle.
-            This can be loaded from configure file or calculated from
-            player's attributes (further in the development).
-            Ex: [ [1  0  1]
-                  [0  P  0]
-                  [0  0  0] ]"""
-        if matrix is None:
-            matrix = np.zeros((2+distance, 2+distance), dtype=int)
-        self.p_pos = (matrix.shape[0] / 2, matrix.shape[1] / 2) # player position
-        self.distance = 1
-        
+        move_mask = player.get_move_mask()
+        i, j = self.board.get_index_from_position(player.rect.center)
+        move_area = self.board.get_neighbors(i, j, move_mask.distance,
+                                             move_mask.get_mask())
+        self.empty()
+        self.add(move_area)
+        LOG.debug("move area %s" % self)
+        # Update move area for the player
+        player.move_area = self
+        return self

@@ -8,7 +8,7 @@
 import pygame
 from pygame import sprite
 
-from anim import BaseAnimation
+from game.anim import BaseAnimation
 
 class Square(sprite.Sprite):
     

@@ -11,7 +11,7 @@ import pygame
 from pygame import sprite
 import numpy as n
 
-from spritesheet import SpriteStripAnim
+from game.spritesheet import SpriteStripAnim
 from constants import FPS, PERSONA_SIZE
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class Persona(sprite.Sprite):
         self.strip_index = 0
         self.speed = (0,0)
         self.board = board
-        self.move_area = sprite.Group(board.squares)  # player can initially move anywehere
+        self.move_area = sprite.Group(board.squares)
         self.square_walk = n.zeros(2, dtype=int)     
      
     def current_sqr(self):
@@ -83,7 +83,7 @@ class Persona(sprite.Sprite):
             self.walk_iter(delta).next()
         except StopIteration:
             # Fix square position
-            sqr = self.board.get_square_from_position(self.rect.center)
+            sqr = self.current_sqr()
             self.x = sqr.rect.x
             self.y = sqr.rect.y 
             self.square_walk = n.zeros(2)
@@ -150,9 +150,35 @@ class Persona(sprite.Sprite):
         self.move(self.speed, seconds)
         #self.draw(self.image) 
         
-    def set_effect(self):
-        pass
-    
+    def get_move_mask(self):
+        matrix = n.ones((3,3))
+        matrix[0,0] = 0
+        matrix[0,2] = 0
+        return MoveAreaMask(matrix, distance=2)
+
+
+class MoveAreaMask(object):
+    def __init__(self, matrix=None, distance=1):
+        """ Define the mask that will be used to get the right squares for 
+            a player's move area. This mask has a distance to the player
+            (which will used in the get neighbors method.
+            The mask is a set of 1 and 0, and a P value to sign up where
+            the player is (mostly common in the middle.
+            This can be loaded from configure file or calculated from
+            player's attributes (further in the development).
+            Ex: [ [0  1  1]
+                  [1  P  1]
+                  [1  1  1] ]"""
+        if matrix is None:
+            matrix = n.ones((2+distance, 2+distance), dtype=int)
+        self.p_pos = (matrix.shape[0] / 2, matrix.shape[1] / 2) # player position
+        self.distance = distance
+        self.matrix = matrix
+        
+    def get_mask(self):
+        return self.matrix
+
+
 class Team(sprite.Group):
     def __init__(self, name):
         super(Team, self).__init__()
