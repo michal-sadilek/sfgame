@@ -43,9 +43,11 @@ class Persona(sprite.Sprite):
         return sqr   
         
     def stop(self):
-        self.speed = (0,0)
+        self.speed = (0, 0)
         
     def get_direction(self, speed):
+        if speed == (0, 0):
+            return (0, 1)
         return (n.array(self.speed) / n.linalg.norm(n.array(self.speed))).astype(int)
                 
     def move(self, speed, seconds=1):       
@@ -183,6 +185,7 @@ class Team(sprite.Group):
     def __init__(self, name):
         super(Team, self).__init__()
         self.name = name
+        self.players_pos = []
         self.team_iter = itertools.cycle(self.sprites())
         
     def add_player(self, *players):
@@ -193,8 +196,18 @@ class Team(sprite.Group):
     def next_player(self, *kwargs):
         LOG.debug("Team %s sprites: %s" % (self.name, self.sprites()))
         return self.team_iter.next()
-            
     
+    def get_all_positions(self):
+        # get index positions for all players in this team
+        if self.players_pos is not None:
+            return self.players_pos
+        
+        for player in self.sprites():
+            p_pos = player.board.get_index_from_position(player.rect.center)
+            self.players_pos.append(p_pos)
+        return self.players_pos   
+            
+            
 # not currently used   
 class Move(object):        
     def __init__(self, persona, speed):

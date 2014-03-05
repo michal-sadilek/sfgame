@@ -9,6 +9,8 @@
 # for a board
 
 import logging
+import copy
+
 import numpy as n
 from numpy import ma
 from scipy import ndimage
@@ -166,6 +168,7 @@ class BoardEngine(object):
             LOG.warning("No current player set for board %s" % self.board)
         else:
             self.move_area.update_area(self.current_player)
+            self.ma_filter_other_teams(self.current_player)
             self.highlight_squares(self.move_area.sprites())          
         
     def event(self, event, seconds):
@@ -177,7 +180,21 @@ class BoardEngine(object):
                 self.current_player = self.next_player(self.teams)
                 # Set new move area
                 self.move_area.update_area(self.current_player)
+                self.ma_filter_other_teams(self.current_player)
                 self.highlight_squares(self.move_area.sprites(), on=True)
+                
+    def ma_filter_other_teams(self, player):
+        others = self.get_others_team(player)
+        for other in others:
+            self.move_area.filter_collision(other)
+            
+    def ma_get_collided_others(self, player):
+        others = self.get_others_team(player)
+        collided = sprite.Group([])
+        for other in others:
+            collided.append(self.move_area.get_collided(other))
+        LOG.debug("collided sprites %s: " % collided)
+        return collided
                 
     def highlight_squares(self, squares, on=True):
         for square in squares:
@@ -192,6 +209,12 @@ class BoardEngine(object):
                 return team
         LOG.warning('No team defined for player %s' % player)
         return None
+    
+    def get_others_team(self, player):
+        team = self.get_team(player)
+        others = copy.copy(self.teams)
+        others.remove(team)
+        return others
     
     def next_player(self, teams, **kwargs):
         # get team current player
@@ -221,6 +244,16 @@ class MoveArea(sprite.Group):
     def __init__(self, board):
         super(MoveArea, self).__init__([])
         self.board = board
+
+    def get_collided(self, group):
+        return sprite.groupcollide(self, group, False, False)
+    
+    def filter_collision(self, group):
+        # Check collision and remove squares from this group
+        # if collision is true
+        # TODO: use a collide function and pass as parameter to check 
+        # indices instead of checking rects
+        sprite.groupcollide(self, group, True, False)
     
     def update_area(self, player):
         # get move area from mask (list of squares)
