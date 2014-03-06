@@ -1,8 +1,6 @@
 # Filename: anim.py
-# 
-# Add license here
-
-# Author: Adalberto Medeiros (adalbas@gmail.com)
+# License under LGPL v3
+# Author: Adalberto Medeiros (adalbas@outlook.com)
 # Code references: spritesheet from pygame docs
 
 
@@ -53,16 +51,3 @@ class BaseAnimation(object):
     def __add__(self, ss):
         self.images.extend(ss.images)
         return self
-    
-    def start(self):
-        pass
-    
-    def stop(self):
-        pass
-    
-    def pause(self):
-        pass
-    
-    def resume(self):
-        pass
-        

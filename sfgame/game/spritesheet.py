@@ -1,3 +1,6 @@
+# Pygame spritesheet example
+# Licensed under LGPLv3
+
 # This class handles sprite sheets
 # This was taken from www.scriptefun.com/transcript-2-using
 # sprite-sheets-and-drawing-the-background
@@ -5,7 +8,7 @@
 # Note: When calling images_at the rect is the format:
 # (x, y, x + offset, y + offset)
 
-# Source: http://www.pygame.org/wiki/Spritesheet?parent=CookBook
+# File based in Source: http://www.pygame.org/wiki/Spritesheet?parent=CookBook
  
 import pygame
 from game.anim import BaseAnimation

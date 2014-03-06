@@ -1,9 +1,18 @@
 # Filename: persona.py
+# Copyright 2014, SFGame Project
 # 
-# Add license here
-
-# Author: Adalberto Medeiros (adalbas@gmail.com)
-# Code references:
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Author: Adalberto Medeiros (adalbas@outlook.com)
 
 import logging
 import itertools
@@ -35,6 +44,7 @@ class Persona(sprite.Sprite):
         self.strip_index = 0
         self.speed = (0,0)
         self.board = board
+        self.move_mask = self.get_move_mask()
         self.move_area = sprite.Group(board.squares)
         self.square_walk = n.zeros(2, dtype=int)     
      
@@ -156,7 +166,11 @@ class Persona(sprite.Sprite):
         matrix = n.ones((3,3))
         matrix[0,0] = 0
         matrix[0,2] = 0
-        return MoveAreaMask(matrix, distance=2)
+        return self.set_mask(matrix, distance=2)
+    
+    def set_mask(self, matrix, distance=1):
+        self.move_mask = MoveAreaMask(matrix, distance)
+        return self.move_mask
 
 
 class MoveAreaMask(object):
