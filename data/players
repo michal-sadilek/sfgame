@@ -1,0 +1,27 @@
+[DEFAULT]
+teams=teamA,teamB
+
+[teamA]
+players=Bowie,Bowie
+
+[teamB]
+players=Tina,Tina,Tina
+
+[Bowie]
+anim_time=0.25
+filename=images/ShiningForce2_Bowie.png
+# position to first anim for each direction: DOWN, UP, LEFT, RIGHT
+spritesheet=[(0,0,23,27), (45,0,23,27), (90,0,22,27), (134,0,22,27)]
+# number of stripes sequence for each direction
+count=2
+colorkey=white
+
+[Tina]
+anim_time=0.25
+filename=images/SF2_girl.png
+# position to first anim for each direction: DOWN, UP, LEFT, RIGHT
+spritesheet=[(0,0,28,28), (56,0,28,28), (112,0,28,28), (168,0,28,28)]
+# number of stripes sequence for each direction
+count=2
+colorkey=black
+

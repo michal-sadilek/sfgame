@@ -15,17 +15,21 @@
 
 # Author: Adalberto Medeiros (adalbas@outlook.com)
 
+import logging
 
 import pygame
 from pygame import sprite
 
-from game.anim import BaseAnimation
+from game.spritesheet import BaseAnimation
+
+LOG = logging.getLogger(__name__)
 
 class Square(sprite.Sprite):
     
     def __init__(self, index, size, value):
         super(Square, self).__init__()
         self.index = index
+        self.h_effect = None
         self.rect = pygame.Rect((index[0]*size[0], index[1]*size[1]), size)
         self.value = value
           
@@ -36,11 +40,7 @@ class Square(sprite.Sprite):
     def get_size(self):
         """ Return square size"""
         return self.size
-    
-    def draw(self, surface):
-        """ Implemented by child"""
-        pass
-    
+
     def highlight(self, alpha_array, duration, on=True):
         """The alpha array to make it blink, the duration for each blink,
         in frames per second and if it should be on or off"""
@@ -66,13 +66,14 @@ class BitSquare(Square):
             alpha = self.h_effect.next()
             sqr_surface.set_alpha(alpha)
         except AttributeError:
+            # Error is reached if self.h_effect is None, i. e., highlight is off
             pass
-                                               
-        # Choose color based on value
-        if self.value == 1:
-            color = pygame.Color('white')
-        elif self.value == 0:
-            color = pygame.Color('red')
-        sqr_surface.fill(color)
-        
-        surface.blit(sqr_surface, self.rect)
+        finally:
+            # Choose color based on value
+            if self.value == 1:
+                color = pygame.Color('white')
+            elif self.value == 0:
+                color = pygame.Color('red')
+            sqr_surface.fill(color)
+            
+            surface.blit(sqr_surface, self.rect)

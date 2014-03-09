@@ -17,11 +17,14 @@
 
 import os
 import pygame
+import logging
 import logging.config
 
 import constants as K
 from game.board import BitBoard, BoardEngine
-from game.persona import Persona
+import load
+
+LOG = logging.getLogger(__name__)
 
 def config():
     pass
@@ -42,23 +45,39 @@ def game():
     # Create and load board (squares)
     chessboard = BitBoard()
     chessboard.load()
-    
-    # Create players and add them to the board
-    player1 = Persona(chessboard,(0,0), K.PERSONA_SIZE)
-    player1.sprite_anim()
-    player2 = Persona(chessboard,(320,320), K.PERSONA_SIZE)
-    player2.sprite_anim()
-    player3 = Persona(chessboard, (120, 120), K.PERSONA_SIZE)
-    player3.sprite_anim()
-    
-    # Create board engine and associate players
     board_engine = BoardEngine(chessboard)
-    teamA = board_engine.create_team("Team A")
-    teamB = board_engine.create_team("Team B")
-    teamA.add_player(player1)
-    teamB.add_player([player2, player3])
-    board_engine.set_current_player(player1)
+    
+    # Load teams and players from config players file
+    config = load.load_config(load.PLAYER_CONFIG)
+    teams = load.load_teams(config, board_engine)
+    for team in teams:
+        players = load.load_players(config, board_engine, team.name)
+        for player in players:
+            team.add_player(player)
+    
+    # Set current player and load engine -> needed to set up move area
+    LOG.debug('Teams: %s' % teams)
+    board_engine.set_current_player(teams[0].next_player())
     board_engine.load()
+    
+    
+    
+#     # Create players and add them to the board
+#     player1 = Persona(chessboard,(0,0), K.PERSONA_SIZE)
+#     player1.sprite_anim()
+#     player2 = Persona(chessboard,(320,320), K.PERSONA_SIZE)
+#     player2.sprite_anim()
+#     player3 = Persona(chessboard, (120, 120), K.PERSONA_SIZE)
+#     player3.sprite_anim()
+#     
+#     # Create board engine and associate players
+#     board_engine = BoardEngine(chessboard)
+#     teamA = board_engine.create_team("Team A")
+#     teamB = board_engine.create_team("Team B")
+#     teamA.add_player(player1)
+#     teamB.add_player([player2, player3])
+#     board_engine.set_current_player(player1)
+#     board_engine.load()
     
     running = True
     while running:
@@ -86,15 +105,15 @@ def game():
         
         # draw methods
         chessboard.draw(screen)
-        for player in teamA:
-            player.draw(screen)
-        for player in teamB:
-            player.draw(screen)
-        
+        for team in teams:
+            for player in team:
+                player.draw(screen)
+
         pygame.display.flip()
-    
+
 if __name__ == "__main__":
     basedir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                     '../'))  
     logging.config.fileConfig(basedir + '/logging.conf')
     game()
+

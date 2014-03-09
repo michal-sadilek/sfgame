@@ -26,7 +26,7 @@ from pygame import sprite
 
 from constants import SCREEN_SIZE, SQUARE_SIZE, FPS
 from game.square import BitSquare
-from game.persona import Team
+from game.persona import Team, MoveAreaMask
 
 LOG = logging.getLogger(__name__)
 
@@ -179,7 +179,17 @@ class BoardEngine(object):
         
     def event(self, event, seconds):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_s:
+            if event.key == pygame.K_a:
+                # turn off previous move_area
+                self.highlight_squares(self.move_area.sprites(), on=False)
+                # Update move area
+                mask = ndimage.generate_binary_structure(2, 1).astype(int)
+                ma_mask = MoveAreaMask(mask, 1)
+                self.move_area.update_area(self.current_player, ma_mask)
+                self.ma_filter_player(self.current_player)
+                self.highlight_squares(self.move_area.sprites(), on=True)
+                
+            elif event.key == pygame.K_s:
                 # turn off previous move_area
                 self.highlight_squares(self.move_area.sprites(), on=False)
                 # Change current player
@@ -193,6 +203,9 @@ class BoardEngine(object):
         others = self.get_others_team(player)
         for other in others:
             self.move_area.filter_collision(other)
+            
+    def ma_filter_player(self, player):
+        self.move_area.filter_single_collision(player)
             
     def ma_get_collided_others(self, player):
         others = self.get_others_team(player)
@@ -254,6 +267,9 @@ class MoveArea(sprite.Group):
     def get_collided(self, group):
         return sprite.groupcollide(self, group, False, False)
     
+    def filter_single_collision(self, single):
+        sprite.spritecollide(single, self, True)
+    
     def filter_collision(self, group):
         # Check collision and remove squares from this group
         # if collision is true
@@ -261,9 +277,10 @@ class MoveArea(sprite.Group):
         # indices instead of checking rects
         sprite.groupcollide(self, group, True, False)
     
-    def update_area(self, player):
+    def update_area(self, player, move_mask=None):
         # get move area from mask (list of squares)
-        move_mask = player.get_move_mask()
+        if move_mask is None:
+            move_mask = player.get_move_mask()
         i, j = self.board.get_index_from_position(player.rect.center)
         move_area = self.board.get_neighbors(i, j, move_mask.distance,
                                              move_mask.get_mask())

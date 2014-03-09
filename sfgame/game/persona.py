@@ -120,20 +120,14 @@ class Persona(sprite.Sprite):
         sprite = self.strips[self.strip_index].next()
         surface.blit(sprite, self.rect)
     
-    def sprite_anim(self):
-        
-        # TODO: change values below to the appropriate place (BD, file...)
-        frames = FPS / 4
-        filename = '/home/acfleury/user/sf/sfgame/data/images/ShiningForce2_Bowie.png'
-        # position to each stripanim (2 stripes each)
-        stripesheet = [(0,0,23,27), (45,0,23,27), (90,0,22,27), (134,0,22,27)]
-        count = 2
-        colorkey = pygame.Color('white')
+    def sprite_anim(self, filename, spritesheet,
+                    count, frames, colorkey):
         
         self.strips = []       
-        for i in range(len(stripesheet)):
-            self.strips.append(SpriteStripAnim(filename,  stripesheet[i],
-                                          count, colorkey, True, frames))
+        for i in range(len(spritesheet)):
+            self.strips.append(SpriteStripAnim(filename,  spritesheet[i],
+                                               count, pygame.Color(colorkey),
+                                               True, frames))
             
     def event(self, event, seconds):
         # fix center from last move
