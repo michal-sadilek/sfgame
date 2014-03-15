@@ -14,6 +14,7 @@
 # limitations under the License.
 
 # Author: Adalberto Medeiros (adalbas@outlook.com)
+# class Camera source from Dominic Kexel
 
 import os
 import pygame
@@ -28,6 +29,32 @@ LOG = logging.getLogger(__name__)
 
 def config():
     pass
+
+class Camera(object):
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func
+        self.state = pygame.Rect(0, 0, width, height)
+
+    def apply(self, target):
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        self.state = self.camera_func(self.state, target.rect)
+
+def complex_camera(camera, target_rect):
+    WIN_WIDTH, WIN_HEIGHT = K.SCREEN_SIZE
+    HALF_WIDTH = int(WIN_WIDTH / 2)
+    HALF_HEIGHT = int(WIN_HEIGHT / 2)
+    
+    l, t, _, _ = target_rect
+    _, _, w, h = camera
+    l, t, _, _ = -l+HALF_WIDTH, -t+HALF_HEIGHT, w, h
+
+    l = min(0, l)                           # stop scrolling at the left edge
+    l = max(-(camera.width-WIN_WIDTH), l)   # stop scrolling at the right edge
+    t = max(-(camera.height-WIN_HEIGHT), t) # stop scrolling at the bottom
+    t = min(0, t)                           # stop scrolling at the top
+    return pygame.Rect(l, t, w, h)
 
 def game():
     # Initialize pygame
@@ -60,25 +87,9 @@ def game():
     board_engine.set_current_player(teams[0].next_player())
     board_engine.load()
     
-    
-    
-#     # Create players and add them to the board
-#     player1 = Persona(chessboard,(0,0), K.PERSONA_SIZE)
-#     player1.sprite_anim()
-#     player2 = Persona(chessboard,(320,320), K.PERSONA_SIZE)
-#     player2.sprite_anim()
-#     player3 = Persona(chessboard, (120, 120), K.PERSONA_SIZE)
-#     player3.sprite_anim()
-#     
-#     # Create board engine and associate players
-#     board_engine = BoardEngine(chessboard)
-#     teamA = board_engine.create_team("Team A")
-#     teamB = board_engine.create_team("Team B")
-#     teamA.add_player(player1)
-#     teamB.add_player([player2, player3])
-#     board_engine.set_current_player(player1)
-#     board_engine.load()
-    
+    board_width, board_height = chessboard.get_pixel_size()
+    camera = Camera(complex_camera, board_width, board_height)
+  
     running = True
     while running:
         
@@ -100,14 +111,18 @@ def game():
         key = pygame.key.get_pressed()
         cur_player.keypressed(key, seconds)
                
-        # Start screen
+        # Start screen (background)
         screen.fill(pygame.Color(K.SCREEN_COLOR))
         
+        camera.update(cur_player)
+        
         # draw methods
-        chessboard.draw(screen)
+        #chessboard.draw(screen)
+        chessboard.draw(screen, camera)
         for team in teams:
             for player in team:
-                player.draw(screen)
+                player.draw(screen, camera)
+                #player.draw(screen)
 
         pygame.display.flip()
 

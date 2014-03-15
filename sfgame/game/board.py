@@ -24,7 +24,7 @@ from scipy import ndimage
 import pygame
 from pygame import sprite
 
-from constants import SCREEN_SIZE, SQUARE_SIZE, FPS
+from constants import SCREEN_SIZE, SQUARE_SIZE, FPS, BOARD_SIZE
 from game.square import BitSquare
 from game.persona import Team, MoveAreaMask
 
@@ -42,8 +42,8 @@ class Board(object):
         """ Load squares in board, with all their characteristics
         Implemented by child class"""
         pass    
-    
-    def draw(self, surface):
+                
+    def draw(self, surface, camera):
         """ draw the squares from the board"""
         if self.squares is None:
             self.load_board()
@@ -51,7 +51,7 @@ class Board(object):
         N, M = self.get_size()
         for i in range(N):
             for j in range(M):
-                self.squares[i][j].draw(surface)
+                self.squares[i][j].draw(surface, camera)
          
     def update(self):
         pass
@@ -132,7 +132,7 @@ class BitBoard(Board):
             self.size = matrix.shape
             self.matrix_board = matrix
         else: # default
-            self.size = self.set_size(SCREEN_SIZE, sqr_size)
+            self.size = self.set_size(BOARD_SIZE, sqr_size)
             self.matrix_board = self._create_chessboard(self.size)  
             print self.matrix_board, self.matrix_board.shape
             

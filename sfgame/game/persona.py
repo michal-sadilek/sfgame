@@ -33,8 +33,8 @@ MOVE_SPEED = SIZE / MOVE_DELAY      # speed to move a square
 class Persona(sprite.Sprite):
     def __init__(self, board, pos, size, **kwargs):
         super(Persona, self).__init__()
-        #self.image = pygame.Surface(size)
-        #self.image.fill(pygame.Color('white'))
+        self.image = pygame.Surface(size).convert()
+        self.image.fill(pygame.Color('white'))
         #self.rect = self.image.get_rect()
         #self.rect.x = pos[0]
         #self.rect.y = pos[1]
@@ -55,12 +55,22 @@ class Persona(sprite.Sprite):
     def stop(self):
         self.speed = (0, 0)
         
-    def get_direction(self, speed):
-        if speed == (0, 0):
+    def is_stopped(self):
+        if self.speed == (0, 0):
+            return True
+        else:
+            return False
+        
+    def get_direction(self):
+        if self.is_stopped():
             return (0, 1)
         return (n.array(self.speed) / n.linalg.norm(n.array(self.speed))).astype(int)
                 
-    def move(self, speed, seconds=1):       
+    def move(self, speed, seconds=1):
+        # Dont need to perform movement if speed is 0
+        if self.is_stopped():
+            return
+          
         # start square movement
         if n.all(self.square_walk == n.array([0,0])):
             try:
@@ -71,7 +81,7 @@ class Persona(sprite.Sprite):
                 return
             
             # Check for collisions (next square exists)
-            direction = self.get_direction(speed)
+            direction = self.get_direction()
             n_i, n_j = n.array(index) + direction
             try:
                 # try block to get uninvalid indexes (outside board)
@@ -109,7 +119,7 @@ class Persona(sprite.Sprite):
             self.square_walk = self.square_walk + delta
             yield 
                    
-    def draw(self, surface):
+    def draw(self, surface, camera):
         if self.strips is None:
             self.sprite_anim()
             
@@ -118,7 +128,10 @@ class Persona(sprite.Sprite):
         self.rect.y = round(self.y)
             
         sprite = self.strips[self.strip_index].next()
-        surface.blit(sprite, self.rect)
+        self.image.fill(pygame.Color('white'))
+        self.image.set_colorkey(pygame.Color('white'), pygame.RLEACCEL)
+        self.image.blit(sprite, (0,0))
+        surface.blit(self.image, camera.apply(self))
     
     def sprite_anim(self, filename, spritesheet,
                     count, frames, colorkey):
@@ -136,10 +149,7 @@ class Persona(sprite.Sprite):
           
     def keypressed(self, keys, seconds):
         # Move the player if an arrow key is pressed
-        if self.speed == (0,0):
-            lock = False
-        else:
-            lock = True
+        lock = not self.is_stopped()
         if not lock:
             if keys[pygame.K_LEFT]:
                 self.strip_index = 2

@@ -30,6 +30,8 @@ class Square(sprite.Sprite):
         super(Square, self).__init__()
         self.index = index
         self.h_effect = None
+        self.image = pygame.Surface(size).convert()
+        self.image.fill(pygame.Color('white'))
         self.rect = pygame.Rect((index[0]*size[0], index[1]*size[1]), size)
         self.value = value
           
@@ -56,7 +58,7 @@ class BitSquare(Square):
     def __init__(self, index, size, value):
         super(BitSquare, self).__init__(index, size, value)
         
-    def draw(self, surface):
+    def draw(self, surface, camera):
         # create a temporary surface before draw in the final one
         # this is useful to apply animations and set other attributes
         sqr_surface = pygame.Surface((self.rect.w, self.rect.h)).convert()                         
@@ -76,4 +78,6 @@ class BitSquare(Square):
                 color = pygame.Color('red')
             sqr_surface.fill(color)
             
-            surface.blit(sqr_surface, self.rect)
+            self.image = sqr_surface
+            surface.blit(self.image, camera.apply(self))
+
