@@ -15,7 +15,7 @@
 
 # Author: Adalberto Medeiros (adalbas@gmail.com)
 
-SCREEN_SIZE = (600, 600)
+SCREEN_SIZE = (800, 800)
 BOARD_SHAPE = (25, 25)
 SCREEN_NAME = "SF Project"
 SCREEN_COLOR = 'blue'
