@@ -130,5 +130,10 @@ if __name__ == "__main__":
     basedir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                     '../'))  
     logging.config.fileConfig(basedir + '/logging.conf')
+    # short instructions
+    print "Instructions:"
+    print "Use arrows to move"
+    print "s	to switch player"
+    print "a	to ???"
     game()
 

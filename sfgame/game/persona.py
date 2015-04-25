@@ -40,7 +40,7 @@ class Persona(sprite.Sprite):
         #self.rect.y = pos[1]
         self.rect = pygame.Rect(pos, size)
         self.x = pos[0]
-        self.y = pos[0]
+        self.y = pos[1]
         self.strip_index = 0
         self.speed = (0,0)
         self.board = board
