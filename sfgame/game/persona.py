@@ -19,6 +19,7 @@ import itertools
 import pygame
 from pygame import sprite
 import numpy as n
+from pprint import pprint
 
 from game.spritesheet import SpriteStripAnim
 from constants import FPS, PERSONA_SIZE
